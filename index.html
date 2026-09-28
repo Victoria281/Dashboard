@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Private sales dashboard</title>
+<style>body{font:16px system-ui;background:#f4f6fb;color:#243047;margin:0}main{max-width:360px;margin:15vh auto;padding:32px;background:white;border-radius:20px}input,button{box-sizing:border-box;width:100%;padding:14px;margin-top:12px;border:1px solid #ccd4e4;border-radius:8px}button{background:#3459c7;color:white;cursor:pointer}#message{min-height:24px}</style>
+<main><h1>Sales dashboard</h1><p>Enter your password to unlock the report.</p><form id="form"><input id="password" type="password" autocomplete="current-password" aria-label="Report password" required><button id="unlock">Unlock</button></form><p id="message" role="status"></p></main>
+<script>
+const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+document.getElementById('form').onsubmit=async e=>{e.preventDefault();const button=document.getElementById('unlock');button.disabled=true;
+try{const response=await fetch('report.enc.json',{cache:'no-store'});if(!response.ok)throw Error();const payload=await response.json();
+const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(document.getElementById('password').value),'PBKDF2',false,['deriveKey']);
+const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:decode(payload.salt),iterations:payload.iterations,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+const clear=await crypto.subtle.decrypt({name:'AES-GCM',iv:decode(payload.iv)},key,decode(payload.data));
+document.open();document.write(new TextDecoder().decode(clear));document.close();
+}catch{document.getElementById('message').textContent='Could not unlock. Check your password or try again after the report is published.';button.disabled=false;}};
+</script></html>
